@@ -1,24 +1,33 @@
 package com.redhat.coolstore.service;
 
-import javax.enterprise.context.ApplicationScoped;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import javax.ejb.Stateless;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 
 import com.redhat.coolstore.model.Inventory;
 
-@ApplicationScoped
+@Stateless
 public class InventoryService {
 
-	private static final String[] CITIES = new String[] {"Tulsa", "Frankfurt", "Tokyo", "Paris", "Raleigh"};
+	@PersistenceContext
+	private EntityManager em;
 
 	public InventoryService() {
 
 	}
 	
 	public Inventory getInventory(String itemId) {
-		String location = CITIES[(int)(Math.floor(Math.random() * CITIES.length))];
-		String link = "http://maps.google.com/?q=" + location.toLowerCase();
-		return new Inventory(itemId,
-				(int)Math.floor(Math.random() * 100),
-				location, link);
-
+		Inventory inventory = em.find(Inventory.class,itemId);
+		
+//		List<String> recalledProducts = Arrays.asList("165613","165614");
+//		if (recalledProducts.contains(inventory.getItemId())) {
+//			inventory.setQuantity(0);
+//		}
+		
+		return inventory;
 	}
 }

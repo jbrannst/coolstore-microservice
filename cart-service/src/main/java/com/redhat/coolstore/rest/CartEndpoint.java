@@ -6,26 +6,39 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.enterprise.context.SessionScoped;
-import javax.inject.Inject;
-import javax.ws.rs.*;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.WebApplicationContext;
 
 import com.redhat.coolstore.model.Product;
 import com.redhat.coolstore.model.ShoppingCart;
 import com.redhat.coolstore.model.ShoppingCartItem;
 import com.redhat.coolstore.service.ShoppingCartService;
 
-@SessionScoped
+
+@RestController
+@Scope(scopeName = WebApplicationContext.SCOPE_SESSION)
 @Path("/cart")
 public class CartEndpoint implements Serializable {
+	private static final Logger LOG = LoggerFactory.getLogger(CartEndpoint.class);
 
     /**
      *
      */
     private static final long serialVersionUID = -7227732980791688773L;
 
-    @Inject
+    @Autowired
     private ShoppingCartService shoppingCartService;
 
     @GET
@@ -45,6 +58,11 @@ public class CartEndpoint implements Serializable {
         ShoppingCart cart = shoppingCartService.getShoppingCart(cartId);
 
         Product product = shoppingCartService.getProduct(itemId);
+        
+        if (product == null) {
+        	LOG.warn("Invalid product {} request to get added to the shopping cart. No product added", itemId);
+        	return cart;
+        }
 
         ShoppingCartItem sci = new ShoppingCartItem();
         sci.setProduct(product);

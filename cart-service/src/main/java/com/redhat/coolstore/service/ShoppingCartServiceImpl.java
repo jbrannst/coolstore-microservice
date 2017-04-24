@@ -6,22 +6,23 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.ejb.Stateless;
-import javax.inject.Inject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import com.redhat.coolstore.model.Product;
 import com.redhat.coolstore.model.ShoppingCart;
 import com.redhat.coolstore.model.ShoppingCartItem;
-import feign.Feign;
-import feign.jackson.JacksonDecoder;
 
-@Stateless
+@Component
 public class ShoppingCartServiceImpl implements ShoppingCartService {
 	
-	@Inject
+	@Autowired
 	ShippingService ss;
 	
-	@Inject
+	@Autowired
+	CatalogService catalogServie;
+	
+	@Autowired
 	PromoService ps;
 	
 	private Map<String, ShoppingCart> cartDB = new HashMap<>();
@@ -41,36 +42,27 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
 
 	@Override
 	public void priceShoppingCart(ShoppingCart sc) {
-
 		if ( sc != null ) {
-			
 			initShoppingCartForPricing(sc);
 			
 			if ( sc.getShoppingCartItemList() != null && sc.getShoppingCartItemList().size() > 0) {
-			
 				ps.applyCartItemPromotions(sc);
-				
+
 				for (ShoppingCartItem sci : sc.getShoppingCartItemList()) {
-					
 					sc.setCartItemPromoSavings(sc.getCartItemPromoSavings() + sci.getPromoSavings() * sci.getQuantity());
 					sc.setCartItemTotal(sc.getCartItemTotal() + sci.getPrice() * sci.getQuantity());
-					
 				}
 				
 				ss.calculateShipping(sc);				
-				
 			}
 			
 			ps.applyShippingPromotions(sc);
 			
 			sc.setCartTotal(sc.getCartItemTotal() + sc.getShippingTotal());
-		
 		}
-		
 	}
 
 	private void initShoppingCartForPricing(ShoppingCart sc) {
-
 		sc.setCartItemTotal(0);
 		sc.setCartItemPromoSavings(0);
 		sc.setShippingTotal(0);
@@ -78,33 +70,23 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
 		sc.setCartTotal(0);
 
 		for (ShoppingCartItem sci : sc.getShoppingCartItemList()) {
-			
 			Product p = getProduct(sci.getProduct().getItemId());
 			
 			//if product exist, create new product to reset price
 			if ( p != null ) {
-			
 				sci.setProduct(new Product(p.getItemId(), p.getName(), p.getDesc(), p.getPrice()));
 				sci.setPrice(p.getPrice());
 			}
 			
 			sci.setPromoSavings(0);
-			
 		}
-		
-		
 	}
 
 	@Override
 	public Product getProduct(String itemId) {
 		if (!productMap.containsKey(itemId)) {
-
-			CatalogService cat = Feign.builder()
-					.decoder(new JacksonDecoder())
-					.target(CatalogService.class, "http://catalog-service:8080");
-
 			// Fetch and cache products. TODO: Cache should expire at some point!
-			List<Product> products = cat.products();
+			List<Product> products = catalogServie.products();
 			productMap = products.stream().collect(Collectors.toMap(Product::getItemId, Function.identity()));
 		}
 

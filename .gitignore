@@ -10,3 +10,8 @@ out/
 *.war
 *.iml
 .idea
+workspace
+data
+logs/
+tmp/
+.vscode/
